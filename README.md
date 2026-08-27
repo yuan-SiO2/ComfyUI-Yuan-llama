@@ -5,7 +5,7 @@ ComfyUI 的 Qwen VL 推理节点整合包，支持 Qwen3-VL / Qwen3.5-VL / Qwen3
 ## 安装方法
 
 1.  将本项目文件夹放入 `ComfyUI/custom_nodes/` 目录下。
-2.  安装依赖：
+2.  安装依赖：llama-cpp-python 请按「[安装步骤](##安装步骤)」从 JamePeng 预编译 releases 按你的环境（CUDA / Python 版本 / 平台）选择 wheel 安装，其余依赖执行：
     ```bash
     pip install -r requirements.txt
     ```
@@ -44,12 +44,21 @@ ComfyUI 的 Qwen VL 推理节点整合包，支持 Qwen3-VL / Qwen3.5-VL / Qwen3
 #### 安装步骤
 
 1. 将本插件文件夹复制到 ComfyUI 的自定义节点目录：`ComfyUI/custom_nodes/ComfyUI-Yuan-llama/`
-2. 进入插件目录，安装必要的 Python 库：
+2. 安装核心推理引擎 **llama-cpp-python**：从 [JamePeng 预编译 releases](https://github.com/JamePeng/llama-cpp-python/releases) 下载与你的环境匹配的 wheel（无需编译），三个维度都要匹配：
+   - **平台**：`win_amd64` / `linux_x86_64` / `macos`（Metal）
+   - **CUDA 版本**：`cu124` / `cu126` / `cu128`（按你显卡驱动支持的 CUDA 选择；无 N 卡选 CPU 版）
+   - **Python 版本**：`cp310` / `cp311` / `cp312`…（必须与 ComfyUI 使用的 Python 版本一致）
+   - CPU 支持 AVX2 时优先选 `-AVX2-` 版本（`-Basic-` 无 AVX 指令加速）
+   例如 Windows + CUDA 12.8 + Python 3.12：
+   ```bash
+   pip install https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.35-cu128-Basic-win-20260406/llama_cpp_python-0.3.35+cu128.basic-cp312-cp312-win_amd64.whl
+   ```
+3. 安装其余依赖（requirements.txt 不再包含 llama-cpp-python，避免官方源覆盖预编译 wheel）：
    ```bash
    cd ComfyUI/custom_nodes/ComfyUI-Yuan-llama
    pip install -r requirements.txt
    ```
-3. 模型文件（主模型 .gguf 与 mmproj）放入 `ComfyUI/models/LLM/` 目录。
+4. 模型文件（主模型 .gguf 与 mmproj）放入 `ComfyUI/models/LLM/` 目录。
 
 ## 鸣谢
 
