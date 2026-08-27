@@ -1,18 +1,6 @@
-# ComfyUI-YUAN 整合包
-Bernini功能是 `ComfyUI-RH-Bernini` 的增强复刻版，集成了 `ComfyUI-WanAnimatePlus` 的多参考图（Multi-Reference）功能，并保留了 `ComfyUI-YUAN` 的 Qwen-VL 推理节点。
+# ComfyUI-Yuan-llama (Qwen-VL 系列)
 
-## 主要功能
-
-1.  **Bernini Conditioning (Plus)**:
-    *   支持多张参考图输入（Multi-Reference Images）。
-    *   自动任务推理（t2v, v2v, rv2v, r2v 等）。
-    *   集成了 Bernini 核心补丁，支持 Wan2.2-A14B 模型。
-2.  **Bernini Prompt Enhancer**:
-    *   官方 Bernini 提示词增强逻辑，支持多种任务类型。
-    *   输出系统提示词和用户提示词，可对接外部 LLM 节点。
-3.  **Qwen-VL 集成**:
-    *   保留了原有的 Qwen-VL 模型加载与推理节点。
-    *   支持图片、视频抽帧、纯文本等多种推理模式。
+ComfyUI 的 Qwen VL 推理节点整合包，支持 Qwen3-VL / Qwen3.5-VL / Qwen3.6-VL / Qwen3.8-VL 的 GGUF 模型加载与图文推理。
 
 ## 安装方法
 
@@ -23,93 +11,46 @@ Bernini功能是 `ComfyUI-RH-Bernini` 的增强复刻版，集成了 `ComfyUI-Wa
     ```
 3.  重启 ComfyUI。
 
-## 节点说明
+## 节点列表
 
-*   **Bernini Conditioning (Plus)**: 用于构建 Bernini 任务的条件。
-*   **Qwen VL 图像推理**: 可用于辅助生成 Bernini 所需的增强提示词。
+- **API模型加载器**: 支持服务商模式切换（参考 MiniMax H3 提示词增强器）：
+  - **贞贞平价小屋（推荐）**：云端 OpenAI 兼容接口（bytedance/doubao-seed-evolving）
+  - **贞贞的AI工坊（图片/视频）**：云端 OpenAI 兼容接口（默认 gemini-3.5-flash，可自定义模型 ID）
+  - **OpenAI兼容接口（备用）**：任意 OpenAI 兼容端点（需填 Base URL 与模型 ID）
+  - **本地API模型**：加载 Qwen3-VL, Qwen3.5-VL, Qwen3.6-VL 或 Qwen3.8-VL GGUF 模型
+  - 切换服务商后，无关参数自动隐藏
+- **提示词增强器**: 接收加载器的「API模型」端口，进行图片/视频理解推理，输出增强后的文本（云端/本地模式均适用）
 
-
-
-## 插件列表
-
-- **Qwen VL 模型加载器**: 加载 Qwen3-VL, Qwen3.5-VL 或 Qwen3.6-VL GGUF 模型
-- **Qwen VL 图像推理**: 进行图片/视频理解推理
-- **Qwen VL 卸载模型**: 手动释放显存
-
-### 1. Qwen VL 图像推理 (QwenVL)
+### 提示词增强器 (Prompt Enhancer)
 
 #### 主要特性
 
-- **支持模型**: Qwen3-VL, Qwen3.5-VL, **Qwen3.6-VL** (GGUF 格式)。
-- **多模态能力**: 支持加载视觉投影模型 (mmproj)，实现图文混合输入。
-- **灵活模式**:
-  - **图片模式**: 分析单张图片。
-  - **逐帧模式**: 对视频序列的每一帧单独进行描述。
-  - **视频模式**: 抽取关键帧，作为整体上下文进行视频内容理解。
-  - **纯文本模式**: 仅进行文本聊天，无需图片输入。
+- **支持模型**: Qwen3-VL, Qwen3.5-VL, Qwen3.6-VL, **Qwen3.8-VL** (GGUF 格式)，以及云端服务商模型。
+- **多模态能力**: 支持加载视觉投影模型 (mmproj)，实现图文混合输入。「视觉投影mmproj」默认「自动匹配」：按主模型文件名前缀自动匹配同目录 mmproj（无匹配时不启用，适合纯文本模型），不再提供「无」选项。
+- **生成类型**（对标 MiniMax H3 提示词增强器）:
+  - **T2VA（文生音视频）**: 纯文字生成，不连接任何参考媒体。
+  - **I2VA（首帧图生音视频）**: 从「参考图片」列表取前 1 张作为首帧。
+  - **FL2VA（首尾帧生音视频）**: 从「参考图片」列表取前 2 张（第 1 张=首帧、第 2 张=尾帧）。
+  - **L2VA（尾帧图生音视频）**: 从「参考图片」列表取最后 1 张作为尾帧。
+  - **Ref2VA（参考图/视频生音视频）**: 参考图片取全部（最多 9 张）和/或「参考视频」（ComfyUI 原生 VIDEO）。
+- **写作参数**: 目标时长 / 镜头数量(AUTO 或 1-20) / 改写模式(strict·balanced·creative) / 目标长度 / 输出语言 / 提示词模式(官方增强·参考模板融合) / 官方 Skill 协议 / MiniMax 官方创意预设 / 参考模板。
+- **官方 H3 Skill（对标 T8）**: 随插件分发 `official_skills/h3-prompt-writing/` 官方 Skill 包（MiniMax-AI/MiniMax-H3，SKILL.md + base-en.txt/ref-en.txt），运行时按生成类型（Ref2VA 用 ref-en.txt，其余用 base-en.txt）注入 system 消息，并叠加「官方 Skill 协议」profile 规则（现有兼容 / 官方严格全英文）。skill 文件缺失时自动跳过，不影响原有功能。
+- **纯净输出契约（对标 T8）**: system 消息按 T8 `_build_messages` 组装——通用系统规则（Return only the final prompt, 无 Markdown fence/说明/前后缀）+ 官方 H3 core contract + 官方 Skill + profile/语言/改写/提示词模式/镜头数量规则 + 按生成类型的 H3 字段结构（T2VA: integrated_multimodal_description / overall_soundscape / non_diegetic_music；Ref2VA: subject_definitions / summary / retention_analysis / detailed_description / overall_soundscape / non_diegetic_music，含输出布局示例：`<Subject N> 是 <Picture N> 中的角色` 定义、retention_analysis 每行一标签、[Shot N] At MM:SS.mmm 时间轴；I2VA/FL2VA/L2VA 带首帧对齐句）。输出即为纯净的 H3 格式提示词。参考图片按序标注 `<Picture N>` 供 subject_definitions 引用；并在 user 消息最末尾追加强输出契约指令（只输出最终提示词、无 Markdown 围栏、按生成类型强制字段结构，模型对 user 末尾指令遵循度最高，用于压住格式漂移）。
 - **智能显存管理**:
-  - 提供独立的"卸载模型"节点，手动释放显存。
+  - **生成后自动卸载模型**: API模型加载器（本地API模型模式）内置开关，生成完成后自动卸载模型并释放显存。
   - **自动重加载机制**: 模型卸载后，再次运行推理节点时，会自动检测并重新加载模型。
-- **参数微调**: 支持温度 (Temperature), Top-P, Top-K, 重复惩罚等完整生成参数控制。
+- **采样参数（对标 T8，不暴露给用户）**: 温度按改写模式内部固定（strict 0.2 / balanced 0.7 / creative 1.2）；本地 Qwen3.8 自动应用推荐采样；「最大输出长度」已移至 API模型加载器（上下文长度之后，默认 4096），「上下文长度」默认 32768。
 
 #### 安装步骤
 
-1. 将本插件文件夹复制到 ComfyUI 的自定义节点目录：`ComfyUI/custom_nodes/ComfyUI-YUAN_ALL/`
+1. 将本插件文件夹复制到 ComfyUI 的自定义节点目录：`ComfyUI/custom_nodes/ComfyUI-Yuan-llama/`
 2. 进入插件目录，安装必要的 Python 库：
    ```bash
-   cd ComfyUI/custom_nodes/ComfyUI-YUAN_ALL
+   cd ComfyUI/custom_nodes/ComfyUI-Yuan-llama
    pip install -r requirements.txt
    ```
-
-#### 节点列表
-
-- **Qwen VL 模型加载器**: 加载 Qwen3-VL, Qwen3.5-VL 或 Qwen3.6-VL GGUF 模型 (默认加载 Qwen3.6-VL)
-- **Qwen VL 图像推理**: 进行图片/视频理解推理
-- **Qwen VL 卸载模型**: 手动释放显存
-
----
-
-### 2. 文本段落分割 (YUAN_TXT)
-
-文本段落分割 - 复刻终极修复版 V9
-
-#### 主要功能
-
-##### 1. 核心分段逻辑
-- **端口**：严格按输入端口 (any_x) 分割文本。
-- **空行**：识别双换行符进行分割。
-- **序号**：识别 1. / (1) / A. / 一、 等列表标记进行分割。
-- **段落**：每一行算一段。
-- **标题**：智能识别章节标题（如"第一章"、"# 标题"）。
-- **数字**：仅提取文本中的纯数字。
-- **地址**：智能从字符串中提取 Windows 文件路径（如 `D:\Data\img.png`）并自动清洗。
-- **手动**：识别 `|||` 分隔符进行自定义分割。
-
-##### 2. 文本清洗 (段落优化)
-- **开启**：自动删除每段文本开头和结尾的空格、换行符，防止拼接出现多余空行。
-- **关闭**：完全保留原始文本的格式和缩进。
-
-##### 3. 输出模式 (主输出控制)
-- **关闭**：`总段` 端口输出处理并拼接好的完整文本（受 `选取段落` 规则影响）。
-- **开启**：`总段` 端口输出一个列表，包含由 `选取段落` 和 `筛选段落` 规则处理后的所有段落。
-
-##### 4. 动态端口扩展
-- **输入端口**：设置 `any_x` 的数量，用于按顺序拼合多个文本源。
-- **输出段落**：设置右侧 `段落x` 端口的数量，将分段后的内容独立输出。
-- *注意：修改数值后需点击节点上的"更新端口"按钮生效。*
-
-##### 5. 高级选取与筛选
-- **选取段落**：输入例如 `1,3,5` 仅保留特定段落，输入 `0` 或留空保留所有。
-- **筛选段落**：在 `输出模式` 开启时，指定提取第几段内容。如果 `筛选段落` 为 `0`，则输出所有选取的段落。
-
-#### 节点列表
-
-- **文本段落分割**: 多种分段模式的文本处理工具
-
----
+3. 模型文件（主模型 .gguf 与 mmproj）放入 `ComfyUI/models/LLM/` 目录。
 
 ## 鸣谢
 
-*   [ComfyUI-RH-Bernini](https://github.com/RH-RunningHub/ComfyUI-RH-Bernini)
-*   [ComfyUI-WanAnimatePlus](https://github.com/wuwukaka/ComfyUI-WanAnimatePlus)
-整合了 QwenVL 图像推理和 YUAN_TXT 文本处理两大功能。
+- **T8** 的 [comfyui-minimax-h3-prompt-enhancer-T8](https://github.com/T8mars/comfyui-minimax-h3-prompt-enhancer-T8)：本插件「提示词增强器」的 H3 提示词工程框架（system 组装顺序、纯净输出契约、按生成类型的字段结构、官方 H3 Skill 注入）均对标该项目实现，特此鸣谢。

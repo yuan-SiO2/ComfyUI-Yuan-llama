@@ -9,3 +9,6 @@ llama-cpp-python>=0.3.30
 # 图像处理基础库 (ComfyUI 通常已自带，但为了保险起见列出)
 Pillow>=9.0.0
 numpy>=1.20.0
+
+# 云端模式（贞贞平价小屋 / 贞贞的AI工坊 / OpenAI兼容接口）需要
+requests>=2.25.0
